@@ -1,0 +1,8 @@
+---
+# amazon linux uses easy_install-2.6 - py2.6
+- name: base packages
+  easy_install: name={{ item }} 
+  with_items:
+    - pip
+    - supervisor
+    - superlance

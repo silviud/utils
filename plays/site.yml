@@ -1,0 +1,10 @@
+---
+- hosts: all
+  user: ec2-user
+  sudo: True
+  tasks:
+    - include: common.yml
+    - include: supervisor.yml
+    - include: supervisor_programs.yml
+  handlers:
+    - include: handlers.yml

@@ -1,0 +1,3 @@
+---
+- name: enable sync from admin
+  shell: echo "Will enable sync"

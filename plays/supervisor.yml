@@ -1,0 +1,17 @@
+---
+# supervisor setup
+- name: supervisor etc dir
+  file: path=/etc/supervisor state=directory mode=0755 owner=root
+- name: supervisor etc conf dir
+  file: path=/etc/supervisor/conf.d state=directory mode=0755 owner=root
+- name: supervisor log dir
+  file: path=/var/log/supervisor state=directory mode=0755 owner=root
+- name: supervisor main conf file
+  copy: src=files/supervisord.conf dest=/etc/supervisor/supervisord.conf owner=root mode=0644
+  notify: restart supervisord
+- name: supervisorctl link
+  file: src=/etc/supervisor/supervisord.conf dest=/etc/supervisord.conf state=link owner=root
+- name: supervisor init file
+  copy: src=files/supervisor_init dest=/etc/init.d/supervisord owner=root mode=0755
+- name: start supervisord from init
+  service: name=supervisord state=started enabled=yes
