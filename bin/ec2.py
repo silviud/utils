@@ -2,7 +2,7 @@ from boto.ec2 import connect_to_region
 import os
 
 
-def make_connection(region):
+def _make_connection(region):
     conn = connect_to_region(
         region_name = region, 
         aws_access_key_id=os.environ.get("AWS_ACCESS_KEY_ID"), 
@@ -10,7 +10,7 @@ def make_connection(region):
     )
     return conn
 
-def inventory_from_tag(region, tag='class', value="*"):
+def _inventory_from_tag(region, tag='class', value="*"):
     """
     :params region: string as in ec2-east-1 ...
     :params tag: TODO find if is a sg or not and place it down the filter - can be a list
@@ -19,7 +19,7 @@ def inventory_from_tag(region, tag='class', value="*"):
     :returns: list of dns public names
     """
     public_dns   = []
-    connection   = make_connection(region)
+    connection   = _make_connection(region)
     key = "tag:" + tag
     reservations = connection.get_all_instances(filters = {key : value})
     for reservation in reservations:
