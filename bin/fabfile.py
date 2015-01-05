@@ -47,6 +47,7 @@ def prod(key='class', value='monitoring', region='us-east-1'):
     :params value: string value for tag or security group
     Example:
         fab prod:key=sg-group,value=MySG func_to_call
+        fab prod:key=group-name,value=MySG reset_nohup
     """
     web = _inventory_from_tag(region=region, tag=key, value=value)
 
@@ -68,6 +69,7 @@ def time():
 @roles('web')
 def reset_nohup():
     require('roledefs', provided_by=[prod])   
-    with cd('/home/ec2-user/sync'):
-        sudo('echo > nohup.out')
+    with settings(warn_only=True):
+        with cd('/home/ec2-user/sync'):
+            sudo('echo > nohup.out')
     sudo("df -h")
