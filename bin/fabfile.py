@@ -1,6 +1,17 @@
 from fabric.api import *
+from fabric.contrib.project import rsync_project
+from fabric.contrib.files import upload_template
+
 from boto.ec2 import connect_to_region
 import os
+
+
+RSYNC_EXCLUDE = [
+    '*.swp',
+    '*.pyc',
+    "#*#",
+    ".git"
+]
 
 
 def _make_connection(region):
@@ -14,6 +25,7 @@ def _make_connection(region):
         aws_secret_access_key=os.environ.get("AWS_SECRET_ACCESS_KEY")
     )
     return conn
+
 
 def _inventory_from_tag(region, tag='', value="*"):
     """
@@ -38,6 +50,7 @@ def _inventory_from_tag(region, tag='', value="*"):
                 public_dns.append(str(instance.public_dns_name))
     return public_dns
 
+
 def prod(key='class', value='monitoring', region='us-east-1'):
     # TODO - connect to find hosts in account by tags or use DNS
     #        'web': ['ec2-23-21-155-88.compute-1.amazonaws.com',
@@ -59,8 +72,13 @@ def prod(key='class', value='monitoring', region='us-east-1'):
                     'admin': ['admin.icastpro.ca'],
                     'web': web}
     env.user = 'ec2-user'
+    # env.roledefs = {'web': ['192.168.50.10']}
+    # env.user = 'vagrant'
     env.disable_known_hosts = True  # default
     env.reject_unknown_hosts = False # -o 'CheckHostIP=no' -o 'StrictHostKeyChecking=no'
+    env.site_cookbook = 'app_prod'
+    env.chef_repo = '/var/chef/chef-repo'
+    env.chef_conf = '/var/chef/chef-repo/conf/solo.rb'
 
 
 @roles('web')
@@ -77,3 +95,36 @@ def reset_nohup():
         with cd('/home/ec2-user/sync'):
             sudo('echo > nohup.out')
     sudo("df -h")
+
+
+@roles('web')
+def bootstrap_chef():
+    """ install chef on the remote """
+    sudo("mkdir -p %s" % env.chef_repo)
+    sudo("chown -R %s: %s" % (env.user, env.chef_repo))
+    sudo("curl -L https://www.chef.io/chef/install.sh | sudo bash") 
+
+
+@roles('web')
+def run_chef(whyrun=False):
+    """ 
+    :params whyrun: dry run with chef (not acctually running)
+    """
+    with lcd("chef"):
+        local("berks vendor -b site-cookbooks/%s/Berksfile" % env.site_cookbook)
+    sudo("chown -R %s: %s" % (env.user, env.chef_repo))
+    # / at the end of a dir means will sync the contents of the dir not the dir
+    rsync_project(local_dir='chef/berks-cookbooks/',
+                  remote_dir="%s/%s" % (env.chef_repo, 'cookbooks'),
+                  exclude=RSYNC_EXCLUDE)
+    rsync_project(local_dir='chef/cookbooks/',
+                  remote_dir="%s/%s" % (env.chef_repo, 'cookbooks'),
+                  exclude=RSYNC_EXCLUDE)
+    rsync_project(local_dir='chef/site-cookbooks/',
+                  remote_dir="%s/%s" % (env.chef_repo, 'cookbooks'),
+                  exclude=RSYNC_EXCLUDE)
+    rsync_project(local_dir='chef/conf',
+                  remote_dir="%s" % env.chef_repo,
+                  exclude=RSYNC_EXCLUDE)
+    sudo("chef-solo -c %s -o %s" % (env.chef_conf, env.site_cookbook))
+

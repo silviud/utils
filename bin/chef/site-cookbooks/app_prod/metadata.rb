@@ -1,0 +1,7 @@
+name             'app_prod'
+maintainer       'YOUR_NAME'
+maintainer_email 'YOUR_EMAIL'
+license          'All rights reserved'
+description      'Installs/Configures app_prod'
+long_description 'Installs/Configures app_prod'
+version          '0.1.0'
